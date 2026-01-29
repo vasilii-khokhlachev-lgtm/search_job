@@ -1,0 +1,45 @@
+name: Seek 24/7 Job Monitor
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  job-hunt:
+    name: Run Python Scraper
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run scraper
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS || 'Python Developer,DevOps Engineer' }}
+          SEARCH_LOCATION: ${{ vars.SEARCH_LOCATION || 'All Australia' }}
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+        run: |
+          python main.py
+
+      - name: Commit state changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: '🤖 Update job state [skip ci]'
+          file_pattern: data/seen_jobs.json
+          branch: ${{ github.ref_name }}
