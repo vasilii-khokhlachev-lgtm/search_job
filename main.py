@@ -92,6 +92,27 @@ def looks_automated(job: Dict) -> bool:
     return False
 
 
+def matches_location(job: Dict, desired_location: str) -> bool:
+    """Return True if the job location matches the desired location.
+
+    Matching is case-insensitive and checks if the desired location token
+    appears in the job's location string. If job location is Unknown or empty,
+    treat as non-matching.
+    """
+    if not desired_location:
+        return True
+    loc = (job.get('location') or '').strip()
+    if not loc or loc.lower() in ('unknown', 'n/a'):
+        return False
+    # allow multiple desired locations separated by comma
+    desired_tokens = [d.strip().lower() for d in desired_location.split(',') if d.strip()]
+    job_loc = loc.lower()
+    for token in desired_tokens:
+        if token in job_loc:
+            return True
+    return False
+
+
 class SeekScraper:
     def __init__(self):
         # Create cloudscraper instance with desktop chrome fingerprint
@@ -417,11 +438,22 @@ def main():
     unique_jobs = list({j['id']: j for j in all_found_jobs if j.get('id')}.values())
 
     new_count = 0
+    skipped_not_location = 0
+    skipped_automation = 0
     for job in unique_jobs:
         jid = job.get('id')
         if not jid:
             continue
         if jid not in seen_jobs:
+            # location filter
+            if not matches_location(job, SEARCH_LOCATION):
+                skipped_not_location += 1
+                continue
+            # automation exclusion
+            if looks_automated(job):
+                skipped_automation += 1
+                continue
+
             logger.info(f"New job: {jid} - {job.get('title')}")
             notifier.send_job(job)
             seen_jobs.add(jid)
@@ -432,6 +464,10 @@ def main():
         logger.info(f"State updated, {new_count} new jobs saved")
     else:
         logger.info("No new jobs found")
+    if skipped_not_location:
+        logger.info(f"Skipped {skipped_not_location} jobs due to location filter (not {SEARCH_LOCATION})")
+    if skipped_automation:
+        logger.info(f"Skipped {skipped_automation} jobs due to automation exclusion")
 
 
 if __name__ == '__main__':
