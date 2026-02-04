@@ -31,7 +31,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS || 'Manual Testing,Quality Analyst' }}
+          SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS || 'Energy Analyst,Operations Analyst,Process / Flow Assurance Engineer,Utilities Analyst,Technical Analyst,Portfolio Analyst,Gas Analyst,Process Engineer,Business Analyst (energy),Forecasting Analyst,Data Analyst (utilities),Flow Assurance Engineer,Asset / System Analyst,Reliability Analyst,Engineering Analyst,Network Analyst (energy)' }}
           SEARCH_LOCATION: ${{ vars.SEARCH_LOCATION || 'Auckland' }}
           PROXY_URL: ${{ secrets.PROXY_URL }}
         run: |
