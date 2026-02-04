@@ -2,7 +2,7 @@ name: Seek 24/7 Job Monitor
 
 on:
   schedule:
-    - cron: '0 * * * *'  
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:

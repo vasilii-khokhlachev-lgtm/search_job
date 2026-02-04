@@ -63,33 +63,12 @@ else:
         # Exit with non-zero code so CI indicates misconfiguration
         sys.exit(1)
 
-# Default to Manual Testing roles in Auckland. Can be overridden with env vars.
-# Include common manual/QA role name variants; user can override with SEARCH_KEYWORDS env var.
+# Default to energy/analyst roles in Auckland. Can be overridden with env vars.
 SEARCH_KEYWORDS = os.environ.get(
     "SEARCH_KEYWORDS",
-    "Manual Testing,Manual Tester,Manual QA,QA Tester,QA Analyst,Quality Analyst,Quality Assurance Tester,Test Analyst,Functional Tester,Regression Tester,Test Engineer (Manual),Manual QA Engineer"
+    "Energy Analyst,Operations Analyst,Process / Flow Assurance Engineer,Utilities Analyst,Technical Analyst,Portfolio Analyst,Gas Analyst,Process Engineer,Business Analyst (energy),Forecasting Analyst,Data Analyst (utilities),Flow Assurance Engineer,Asset / System Analyst,Reliability Analyst,Engineering Analyst,Network Analyst (energy)"
 ).split(",")
 SEARCH_LOCATION = os.environ.get("SEARCH_LOCATION", "Auckland")
-
-# Exclude automation-related roles by keywords (can be overridden via env)
-EXCLUDE_AUTOMATION_KEYWORDS = [
-    k.strip().lower()
-    for k in os.environ.get(
-        "EXCLUDE_AUTOMATION_KEYWORDS",
-        "automation,automated,selenium,cucumber,playwright,robotframework,webdriver,pytest,protractor,qa automation,automation engineer,automation tester"
-    ).split(",")
-    if k.strip()
-]
-
-
-def looks_automated(job: Dict) -> bool:
-    """Return True if job title or advertiser suggests an automation role."""
-    title = (job.get('title') or '').lower()
-    advertiser = (job.get('advertiser') or '').lower()
-    for kw in EXCLUDE_AUTOMATION_KEYWORDS:
-        if kw in title or kw in advertiser:
-            return True
-    return False
 
 
 def matches_location(job: Dict, desired_location: str) -> bool:
@@ -417,6 +396,8 @@ def save_state(seen_ids: Set[str]):
 
 def main():
     logger.info("Starting Seek monitor...")
+    if DRY_RUN:
+        logger.info("DRY_RUN is ON (no Telegram messages will be sent).")
     scraper = SeekScraper()
     notifier = TelegramNotifier(TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)
 
@@ -439,7 +420,6 @@ def main():
 
     new_count = 0
     skipped_not_location = 0
-    skipped_automation = 0
     for job in unique_jobs:
         jid = job.get('id')
         if not jid:
@@ -448,10 +428,6 @@ def main():
             # location filter
             if not matches_location(job, SEARCH_LOCATION):
                 skipped_not_location += 1
-                continue
-            # automation exclusion
-            if looks_automated(job):
-                skipped_automation += 1
                 continue
 
             logger.info(f"New job: {jid} - {job.get('title')}")
@@ -466,8 +442,6 @@ def main():
         logger.info("No new jobs found")
     if skipped_not_location:
         logger.info(f"Skipped {skipped_not_location} jobs due to location filter (not {SEARCH_LOCATION})")
-    if skipped_automation:
-        logger.info(f"Skipped {skipped_automation} jobs due to automation exclusion")
 
 
 if __name__ == '__main__':
